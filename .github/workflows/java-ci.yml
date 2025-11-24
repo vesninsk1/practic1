@@ -9,12 +9,17 @@ jobs:
     runs-on: ubuntu-latest
     
     container:
-      image: maven:3.8.5-openjdk-21
+      image: eclipse-temurin:21-jdk
       
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Install Maven
+      run: |
+        apt-get update
+        apt-get install -y maven
+        
     - name: Build with Maven
       run: mvn clean compile test package
       
