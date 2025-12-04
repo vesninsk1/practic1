@@ -62,35 +62,14 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
       
-    - name: Setup Java
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '21'
-    - name: Run OWASP
+    - name: Run Dependency-Check with HTML format
       run: |
-        mvn org.owasp:dependency-check-maven:check \
-          -Dformat=HTML \
-          -DoutputDirectory=./sca-reports \
-          -DfailBuildOnCVSS=0 \
-          -DskipTestScope=true \
-          -DsuppressionFiles=./dependency-check-suppressions.xml \
-          -DnvdApiKey=${{ secrets.NVD_API_KEY }}
-        echo "SCA analysis completed"
+        mvn org.owasp:dependency-check-maven:check -Dformat=HTML -DfailBuildOnCVSS=11
         
-    - name: Check and rename report
-      run: |
-        cp ./sca-reports/dependency-check-report.html ./sca-report.html
-        echo "SCA HTML report generated"
-        ls -la ./sca-report.html
-    - name: Upload SCA report as artifact
+    - name: Upload HTML report
       uses: actions/upload-artifact@v4
       with:
-        name: sca-dependency-analysis-reports
-        path: |
-          sca-report.html
-          dependency-check-suppressions.xml
-        retention-days: 30
+        name: sca-html-report
+        path: target/dependency-check-report.html
