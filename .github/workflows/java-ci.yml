@@ -56,3 +56,37 @@ jobs:
       uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: semgrep-report.sarif
+  sca:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Java for SCA
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+        
+    - name: Run OWASP Dependency-Check
+      run: |
+        curl -L -o dependency-check.zip https://github.com/jeremylong/DependencyCheck/releases/download/v9.0.10/dependency-check-9.0.10-release.zip
+        unzip dependency-check.zip
+        ./dependency-check/bin/dependency-check.sh \
+          --project "My Java App" \
+          --scan "." \
+          --out "dependency-check-report.html" \
+          --format HTML \
+          --suppression "dependency-check-suppressions.xml" \
+          --enableExperimental
+          
+    - name: Upload SCA report as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: sca-dependency-report
+        path: |
+          dependency-check-report.html
+          dependency-check-suppressions.xml
+        retention-days: 30
