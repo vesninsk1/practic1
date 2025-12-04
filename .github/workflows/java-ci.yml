@@ -56,6 +56,7 @@ jobs:
       uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: semgrep-report.sarif
+        
   sca:
     needs: build
     runs-on: ubuntu-latest
@@ -64,22 +65,32 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Download and run Dependency-Check (offline mode)
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+    - name: Run OWASP
       run: |
-        wget https://github.com/jeremylong/DependencyCheck/releases/download/v9.0.10/dependency-check-9.0.10-release.zip
-        unzip dependency-check-9.0.10-release.zip
-        ./dependency-check/bin/dependency-check.sh \
-          --project "${{ github.repository }}" \
-          --scan "." \
-          --out "./sca-report.html" \
-          --format HTML \
-          --suppression "./suppressions.xml" \
-          --noupdate \
-          --enableExperimental \
-          --failOnCVSS 11 
-          
-    - name: Upload SCA report
+        mvn org.owasp:dependency-check-maven:check \
+          -Dformat=HTML \
+          -DoutputDirectory=./sca-reports \
+          -DfailBuildOnCVSS=0 \
+          -DskipTestScope=true \
+          -DsuppressionFiles=./dependency-check-suppressions.xml \
+          -DnvdApiKey=${{ secrets.NVD_API_KEY }}
+        echo "SCA analysis completed"
+        
+    - name: Check and rename report
+      run: |
+        cp ./sca-reports/dependency-check-report.html ./sca-report.html
+        echo "SCA HTML report generated"
+        ls -la ./sca-report.html
+    - name: Upload SCA report as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: sca-dependency-check-report
-        path: dependency-report.html
+        name: sca-dependency-analysis-reports
+        path: |
+          sca-report.html
+          dependency-check-suppressions.xml
+        retention-days: 30
