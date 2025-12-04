@@ -71,11 +71,12 @@ jobs:
         ./dependency-check/bin/dependency-check.sh \
           --project "${{ github.repository }}" \
           --scan "." \
-          --out "./dependency-report.html" \
+          --out "./sca-report.html" \
           --format HTML \
           --suppression "./suppressions.xml" \
-          --disableAutoUpdate \
-          --noupdate
+          --noupdate \
+          --enableExperimental \
+          --failOnCVSS 11 
           
     - name: Upload SCA report
       uses: actions/upload-artifact@v4
