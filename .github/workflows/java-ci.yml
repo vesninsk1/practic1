@@ -4,14 +4,13 @@ on:
   pull_request:
     branches: [ main ]
 
-permissions:
-  contents: read
-  security-events: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      security-events: write
     container:
       image: eclipse-temurin:21-jdk
       
@@ -36,7 +35,9 @@ jobs:
   sast:
     needs: build
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      security-events: write
     steps:
     - uses: actions/checkout@v4
       
