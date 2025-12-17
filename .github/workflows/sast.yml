@@ -1,0 +1,53 @@
+name: Java CI
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    container:
+      image: eclipse-temurin:21-jdk
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Install Maven
+      run: |
+        apt-get update
+        apt-get install -y maven
+    - name: Build with Maven
+      run: mvn clean compile test package
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: java-app
+        path: target/*.jar
+
+
+
+  sast:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+      checks: write
+    steps:
+    - uses: actions/checkout@v4
+    - name: Run Semgrep CI
+      uses: returntocorp/semgrep-action@v1
+      with:
+        config: p/java
+    - name: Run Semgrep with SARIF output
+      run: |
+        python -m pip install semgrep
+        semgrep scan --config p/java --sarif --output=semgrep-report.sarif .
+    - name: Upload SARIF report
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: semgrep-report.sarif
