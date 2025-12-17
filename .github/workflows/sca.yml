@@ -26,19 +26,20 @@ jobs:
       with:
         name: java-app
         path: target/*.jar
-sca:  
-  needs: build  
-  runs-on: ubuntu-latest  
-  steps:  
-  - uses: actions/checkout@v4  
-  - name: Run Dependency-Check with HTML format  
-    run: |  
-      mvn org.owasp:dependency-check-maven:check -Dformat=HTML -DfailBuildOnCVSS=11  
-  - name: Check and rename report  
-    run: |  
-      cp ./sca-reports/dependency-check-report.html ./sca-report.html  
-  - name: Upload HTML report  
-    uses: actions/upload-artifact@v4  
-    with:  
-      name: sca-html-report  
-      path: target/dependency-check-report.html
+  
+  sca:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Run Dependency-Check with HTML format
+      run: |
+        mvn org.owasp:dependency-check-maven:check -Dformat=HTML -DfailBuildOnCVSS=11
+    - name: Check and rename report
+      run: |
+        cp ./sca-reports/dependency-check-report.html ./sca-report.html
+    - name: Upload HTML report
+      uses: actions/upload-artifact@v4
+      with:
+        name: sca-html-report
+        path: target/dependency-check-report.html
