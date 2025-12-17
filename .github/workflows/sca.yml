@@ -1,0 +1,45 @@
+name: Java CI
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    container:
+      image: eclipse-temurin:21-jdk
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Install Maven
+      run: |
+        apt-get update
+        apt-get install -y maven
+    - name: Build with Maven
+      run: mvn clean compile test package
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: java-app
+        path: target/*.jar
+  
+  sca:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Run Dependency-Check with HTML format
+      run: |
+        mvn org.owasp:dependency-check-maven:check -Dformat=HTML -DfailBuildOnCVSS=11
+    - name: Check and rename report
+      run: |
+        cp ./sca-reports/dependency-check-report.html ./sca-report.html
+    - name: Upload HTML report
+      uses: actions/upload-artifact@v4
+      with:
+        name: sca-html-report
+        path: target/dependency-check-report.html
