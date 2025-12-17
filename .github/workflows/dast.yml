@@ -1,0 +1,97 @@
+name: Java CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    container:
+      image: eclipse-temurin:21-jdk
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4   
+    - name: Install Maven
+      run: |
+        apt-get update
+        apt-get install -y maven 
+    - name: Build with Maven
+      run: mvn clean compile test package
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: java-app
+        path: target/*.jar
+
+  dast:
+    name: DAST
+    needs: build
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/zaproxy/zaproxy:latest
+      options: --user root
+    
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Java 21
+      run: |
+        apt-get update
+        apt-get install -y wget
+        cd /opt
+        wget https://download.java.net/java/GA/jdk21.0.2/f2283984656d49d69e91c558476027ac/13/GPL/openjdk-21.0.2_linux-x64_bin.tar.gz
+        tar -xzf openjdk-21.0.2_linux-x64_bin.tar.gz
+        export JAVA_HOME=/opt/jdk-21.0.2
+        export PATH=$JAVA_HOME/bin:$PATH
+        java -version
+    - name: Download app
+      uses: actions/download-artifact@v4
+      with:
+        name: java-app
+    - run: mkdir -p /zap/wrk/
+    - run: /opt/jdk-21.0.2/bin/java -jar ./course-management-0.0.1-SNAPSHOT.jar & sleep 30
+    - run: zap-baseline.py -t http://localhost:8080 -r report_site.html || true
+    - run: cp /zap/wrk/report_site.html report_site.html
+    - uses: actions/upload-artifact@v4
+      with:
+        name: zap-base-report
+        path: ./report_site.html
+        retention-days: 14
+  
+  dast2:
+    name: DAST API
+    needs: build
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/zaproxy/zaproxy:latest
+      options: --user root
+      
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Java 21
+      run: |
+        apt-get update
+        apt-get install -y wget
+        cd /opt
+        wget https://download.java.net/java/GA/jdk21.0.2/f2283984656d49d69e91c558476027ac/13/GPL/openjdk-21.0.2_linux-x64_bin.tar.gz
+        tar -xzf openjdk-21.0.2_linux-x64_bin.tar.gz
+        export JAVA_HOME=/opt/jdk-21.0.2
+        export PATH=$JAVA_HOME/bin:$PATH
+        java -version
+    - name: Download app
+      uses: actions/download-artifact@v4
+      with:
+        name: java-app
+    - run: mkdir -p /zap/wrk/
+    - run: /opt/jdk-21.0.2/bin/java -jar ./course-management-0.0.1-SNAPSHOT.jar & sleep 30
+    - run: zap-api-scan.py -t http://localhost:8080 -f openapi -r report_site.html || true
+    - run: cp /zap/wrk/report_site.html report_site.html
+    - uses: actions/upload-artifact@v4
+      with:
+        name: zap-api-report
+        path: ./report_site.html
+        retention-days: 14
